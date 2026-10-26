@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>notion widgets</title>
+<style>
+  body {
+    margin: 0;
+    padding: 24px;
+    background: #f3f8fc;
+    font-family: ui-monospace, monospace;
+    color: #4b6075;
+  }
+  h1 { font-size: 14px; letter-spacing: 0.2em; margin: 0 0 16px; }
+  .grid {
+    display: grid;
+    grid-template-columns: 260px 1fr 300px;
+    gap: 16px;
+    max-width: 1100px;
+  }
+  iframe { width: 100%; border: 0; background: transparent; display: block; }
+  .date { height: 230px; }
+  .timer { height: 330px; }
+  .dday { height: 230px; }
+  .book { height: 360px; }
+  .days { height: 300px; grid-column: 1 / -1; }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+  <h1>NOTION WIDGETS · PREVIEW</h1>
+  <div class="grid">
+    <div>
+      <iframe class="date" data-src="date.html"></iframe>
+      <iframe class="dday" data-src="dday.html"></iframe>
+    </div>
+    <iframe class="timer" data-src="timer.html"></iframe>
+    <iframe class="book" data-src="bookmark.html"></iframe>
+    <iframe class="days" data-src="days.html"></iframe>
+  </div>
+  <script>
+    // pass ?key= through to each widget
+    document.querySelectorAll("iframe").forEach((f) => {
+      f.src = f.dataset.src + location.search;
+    });
+  </script>
+</body>
+</html>

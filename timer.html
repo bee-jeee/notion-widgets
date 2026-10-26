@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>time block</title>
+<link rel="stylesheet" href="style.css">
+<script src="widget.js"></script>
+<style>
+  .body { flex-direction: row; gap: 14px; }
+
+  /* left: current block */
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+  .now-head { display: flex; align-items: baseline; justify-content: space-between; }
+  .left {
+    font-family: "Galmuri14", "Galmuri11", monospace;
+    font-size: 34px;
+    color: var(--deep);
+    line-height: 1;
+  }
+  .left small { font-size: 13px; margin-left: 2px; }
+
+  .card {
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .name { font-size: 15px; }
+  .meta { font-family: "Galmuri9", monospace; font-size: 11px; color: var(--ink); }
+  .todo { font-family: "Galmuri9", monospace; font-size: 11px;
+          color: var(--ink); line-height: 1.5; }
+  .todo:empty { display: none; }
+  .tag {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: #fff;
+    color: var(--deep);
+    font-size: 10px;
+  }
+  .track { height: 8px; border-radius: 99px; background: #fff;
+           border: 1.5px solid var(--line); overflow: hidden; }
+  .fill { height: 100%; background: var(--sky); width: 0; }
+
+  .next {
+    font-family: "Galmuri9", monospace;
+    font-size: 11px;
+    color: var(--sub);
+    padding: 8px 10px;
+    border: 1.5px dashed var(--line);
+    border-radius: 8px;
+  }
+  .next b { color: var(--ink); font-weight: normal; }
+
+  /* right: day timeline */
+  .col {
+    width: 96px;
+    flex: none;
+    border-radius: 12px;
+    background: var(--soft);
+    border: 1.5px solid var(--line);
+    padding: 8px 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .col .wd { font-size: 11px; color: var(--deep); letter-spacing: 0.15em; }
+  .lane { position: relative; flex: 1; width: 100%; min-height: 160px; }
+  .lane .blk { left: 14px; right: 2px; }
+  .blk {
+    position: absolute;
+    left: 4px; right: 4px;
+    border-radius: 5px;
+    font-family: "Galmuri9", monospace;
+    font-size: 9px;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    line-height: 1.1;
+    padding: 0 3px;
+  }
+  .blk.on { outline: 1.5px solid var(--deep); }
+  .nowline {
+    position: absolute;
+    left: 0; right: 0;
+    height: 0;
+    border-top: 1.5px solid var(--deep);
+  }
+  .nowline::before, .nowline::after {
+    content: "";
+    position: absolute;
+    top: -3.5px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--deep);
+  }
+  .nowline::before { left: -2px; }
+  .nowline::after { right: -2px; }
+  .hr { position: absolute; left: 0; font-family: "Galmuri9", monospace;
+        font-size: 8px; color: var(--sub); transform: translateY(-50%); }
+
+  @media (max-width: 320px) { .col { display: none; } }
+</style>
+</head>
+<body>
+<div class="win">
+  <div class="bar">
+    <div class="dots"><i></i><i></i><i></i></div>
+    <span>TIME BLOCK</span>
+    <span id="clock"></span>
+  </div>
+  <div class="body">
+    <div class="main">
+      <div class="now-head">
+        <span class="label">NOW</span>
+        <span class="left" id="left"></span>
+      </div>
+      <div class="card" id="card">
+        <div class="name" id="blkName"></div>
+        <div class="meta" id="meta"></div>
+        <div class="todo" id="todo"></div>
+        <div class="track"><div class="fill" id="fill"></div></div>
+      </div>
+      <div class="next" id="next"></div>
+    </div>
+    <div class="col">
+      <div class="wd" id="wd"></div>
+      <div class="lane" id="lane"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // filled from /api/blocks (notion)
+  let SCHEDULE = [];
+  let loadError = false;
+
+  // pastel sky palette per tag
+  const COLOR = {
+    "공부": "#d5e9f7", "코테": "#e3e5fb", "프로젝트": "#daf0ec",
+    "취업": "#f8f1d8", "일본어": "#d5eef6", "운동": "#e6f4dd",
+    "생활": "#eef1f4",
+  };
+  const esc = (t) => String(t ?? "").replace(/[&<>"]/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const WD = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
+
+  const toMin = (s) => { const [h, m] = s.split(":").map(Number); return h * 60 + m; };
+  const hhmm = (m) =>
+    `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+  const dur = (m) => m >= 60
+    ? `${Math.floor(m / 60)}H` + (m % 60 ? ` ${m % 60}M` : "")
+    : `${m}M`;
+
+  function blocksFor(d) {
+    return SCHEDULE
+      .filter((b) => b.days.includes(d.getDay()))
+      .map((b) => ({ ...b, s: toMin(b.start), e: toMin(b.end) }))
+      .sort((a, b) => a.s - b.s);
+  }
+
+  function render() {
+    const d = new Date();
+    const now = d.getHours() * 60 + d.getMinutes();
+    const list = blocksFor(d);
+    const cur = list.find((b) => b.s <= now && now < b.e);
+    const nxt = list.find((b) => b.s > now);
+
+    clock.textContent = hhmm(now);
+    wd.textContent = WD[d.getDay()];
+
+    // current block card
+    if (cur) {
+      const remain = cur.e - now;
+      left.innerHTML = `-${remain >= 60 ? Math.floor(remain / 60) + "<small>H</small> " : ""}${remain % 60}<small>M</small>`;
+      blkName.textContent = cur.name;
+      meta.innerHTML = `BLOCK : ${cur.start} ~ ${cur.end}<span class="tag">${dur(cur.e - cur.s)}</span>`;
+      card.style.background = COLOR[cur.tag] || "var(--soft)";
+      fill.style.width = `${((now - cur.s) / (cur.e - cur.s)) * 100}%`;
+      fill.parentElement.style.display = "";
+      const lines = [];
+      if (cur.progress) lines.push(`↺ [${esc(cur.progress)}] 까지 했어요`);
+      if (cur.next) lines.push(`▸ [${esc(cur.next)}] 할 차례예요`);
+      todo.innerHTML = lines.join("<br>");
+    } else {
+      left.innerHTML = nxt ? `-${dur(nxt.s - now).replace(/([HM])/g, "<small>$1</small>")}` : "";
+      blkName.textContent = nxt ? "free time ☁" : "오늘 블록 끝 ☁";
+      meta.textContent = nxt ? "다음 블록까지 쉬어가기" : "수고했어요";
+      card.style.background = "var(--soft)";
+      fill.parentElement.style.display = "none";
+      todo.innerHTML = "";
+      if (loadError) meta.textContent = "노션 연결 실패 · 잠시 후 다시 시도";
+    }
+    next.innerHTML = nxt
+      ? `NEXT ▸ <b>${esc(nxt.name)}</b> ${nxt.start}`
+      : "NEXT ▸ 없음";
+
+    // day timeline
+    const from = Math.min(8 * 60, list[0]?.s ?? 480);
+    const to = Math.max(22 * 60, list.at(-1)?.e ?? 1320);
+    const pct = (m) => ((m - from) / (to - from)) * 100;
+    lane.innerHTML = "";
+    for (let h = Math.ceil(from / 60); h * 60 <= to; h += 2) {
+      const t = document.createElement("div");
+      t.className = "hr";
+      t.style.top = pct(h * 60) + "%";
+      t.textContent = h;
+      lane.appendChild(t);
+    }
+    list.forEach((b) => {
+      const el = document.createElement("div");
+      el.className = "blk" + (b === cur ? " on" : "");
+      el.style.top = pct(b.s) + "%";
+      el.style.height = `calc(${pct(b.e) - pct(b.s)}% - 2px)`;
+      el.style.background = COLOR[b.tag] || "#fff";
+      el.textContent = (b.e - b.s) >= 40 ? b.name : "";
+      el.style.justifyContent = "flex-start";
+      el.title = `${b.name} ${b.start}~${b.end}`;
+      lane.appendChild(el);
+    });
+    if (now >= from && now <= to) {
+      const line = document.createElement("div");
+      line.className = "nowline";
+      line.style.top = pct(now) + "%";
+      lane.appendChild(line);
+    }
+  }
+
+  async function load() {
+    try {
+      SCHEDULE = (await widgetApi("blocks")).blocks;
+      loadError = false;
+    } catch (e) {
+      loadError = true;
+    }
+    render();
+  }
+
+  load();
+  setInterval(load, 5 * 60 * 1000); // data every 5m
+  setInterval(render, 20 * 1000); // clock every 20s
+</script>
+</body>
+</html>

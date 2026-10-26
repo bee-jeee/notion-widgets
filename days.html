@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>days</title>
+<link rel="stylesheet" href="style.css">
+<script src="widget.js"></script>
+<style>
+  .body { padding: 12px; overflow-y: auto; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+    gap: 10px;
+  }
+  .day {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1.5px solid var(--line);
+    background: #fff;
+    box-shadow: 0 2px 0 var(--line);
+    transition: transform 0.12s, border-color 0.12s;
+  }
+  .day:hover { transform: translateY(-2px); border-color: var(--sky); }
+  .day.today { border-color: var(--deep); background: var(--soft); }
+
+  .top { display: flex; align-items: baseline; justify-content: space-between; }
+  .md { font-family: "Galmuri14", "Galmuri11", monospace; font-size: 22px; color: var(--ink); }
+  .wk { font-family: "Galmuri9", monospace; font-size: 10px; letter-spacing: 0.15em; color: var(--deep); }
+  .badge {
+    align-self: flex-start;
+    font-family: "Galmuri9", monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--deep);
+    color: #fff;
+  }
+
+  .row { display: flex; align-items: center; justify-content: space-between;
+         font-family: "Galmuri9", monospace; font-size: 10px; color: var(--sub); }
+  .chip { padding: 1px 6px; border-radius: 4px; color: var(--ink); }
+  .c-LOW { background: var(--lav); }
+  .c-MEDIUM { background: var(--butter); }
+  .c-HIGH { background: var(--mint); }
+  .goal { letter-spacing: 2px; color: var(--deep); }
+
+  .core { display: flex; flex-direction: column; gap: 4px; }
+  .track { height: 6px; border-radius: 99px; background: var(--soft);
+           border: 1.5px solid var(--line); overflow: hidden; }
+  .fill { height: 100%; background: var(--sky); }
+
+  .msg { font-size: 11px; color: var(--sub); text-align: center; padding: 20px 0; }
+</style>
+</head>
+<body>
+<div class="win">
+  <div class="bar">
+    <div class="dots"><i></i><i></i><i></i></div>
+    <span>DAYS</span>
+    <span id="count"></span>
+  </div>
+  <div class="body">
+    <div class="grid" id="grid"></div>
+  </div>
+</div>
+
+<script>
+  const WK = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
+
+  function localToday() {
+    const n = new Date();
+    const p = (x) => String(x).padStart(2, "0");
+    return `${n.getFullYear()}-${p(n.getMonth() + 1)}-${p(n.getDate())}`;
+  }
+
+  // "1.5h / 5h ✅" -> 0.3
+  function coreRatio(core) {
+    const m = String(core || "").match(/([\d.]+)h\s*\/\s*([\d.]+)h/);
+    return m ? Math.min(Number(m[1]) / Number(m[2]), 1) : 0;
+  }
+
+  // "2/3" -> ●●○
+  function goalDots(goal) {
+    const m = String(goal || "").match(/(\d)\/(\d)/);
+    if (!m) return "○○○";
+    return "●".repeat(+m[1]) + "○".repeat(Math.max(+m[2] - +m[1], 0));
+  }
+
+  function card(d, today) {
+    const [y, mo, da] = d.date.split("-").map(Number);
+    const wk = WK[new Date(y, mo - 1, da).getDay()];
+    const a = document.createElement("a");
+    a.className = "day" + (d.date === today ? " today" : "");
+    a.href = d.url;
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.innerHTML = `
+      <div class="top"><span class="md">${mo}.${String(da).padStart(2, "0")}</span>
+        <span class="wk">${wk}</span></div>
+      ${d.date === today ? '<span class="badge">TODAY</span>' : ""}
+      <div class="row"><span>컨디션</span><span class="chip"></span></div>
+      <div class="row"><span>목표</span><span class="goal">${goalDots(d.goal)}</span></div>
+      <div class="core">
+        <div class="row"><span>코어</span><span class="ct"></span></div>
+        <div class="track"><div class="fill" style="width:${coreRatio(d.core) * 100}%"></div></div>
+      </div>`;
+    const chip = a.querySelector(".chip");
+    chip.textContent = d.condition || "-";
+    if (d.condition) chip.classList.add(`c-${d.condition}`);
+    a.querySelector(".ct").textContent = d.core || "-";
+    return a;
+  }
+
+  async function load() {
+    try {
+      const { days } = await widgetApi("days", { limit: 14 });
+      const today = localToday();
+      grid.innerHTML = "";
+      count.textContent = days.length;
+      if (!days.length) {
+        grid.innerHTML = '<div class="msg">아직 날짜 페이지가 없어요</div>';
+        return;
+      }
+      days.forEach((d) => grid.appendChild(card(d, today)));
+    } catch (e) {
+      grid.innerHTML = '<div class="msg">노션 연결 실패</div>';
+    }
+  }
+
+  load();
+  setInterval(load, 5 * 60 * 1000); // refresh every 5m
+</script>
+</body>
+</html>

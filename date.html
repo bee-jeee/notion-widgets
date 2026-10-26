@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>date</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .body { align-items: center; justify-content: center; gap: 6px; }
+  .day {
+    font-family: "Galmuri14", "Galmuri11", monospace;
+    font-size: 64px;
+    line-height: 1;
+    color: var(--ink);
+  }
+  .mon { font-size: 13px; letter-spacing: 0.3em; color: var(--deep); }
+  .wk  { font-family: "Galmuri9", monospace; font-size: 10px;
+         letter-spacing: 0.3em; color: var(--sub); }
+  .ko  {
+    margin-top: 10px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--soft);
+    border: 1.5px solid var(--line);
+    font-size: 11px;
+    color: var(--deep);
+  }
+</style>
+</head>
+<body>
+<div class="win">
+  <div class="bar">
+    <div class="dots"><i></i><i></i><i></i></div>
+    <span>TODAY</span>
+    <span id="clock"></span>
+  </div>
+  <div class="body">
+    <div class="day" id="day"></div>
+    <div class="mon" id="mon"></div>
+    <div class="wk" id="wk"></div>
+    <div class="ko" id="ko"></div>
+  </div>
+</div>
+<script>
+  const MON = ["JANUARY","FEBRUARY","MARCH","APRIL","MAY","JUNE",
+    "JULY","AUGUST","SEPTEMBER","OCTOBER","NOVEMBER","DECEMBER"];
+  const WK = ["SUNDAY","MONDAY","TUESDAY","WEDNESDAY",
+    "THURSDAY","FRIDAY","SATURDAY"];
+  const KO = ["일","월","화","수","목","금","토"];
+  const pad = (n) => String(n).padStart(2, "0");
+
+  function render() {
+    const d = new Date();
+    day.textContent = d.getDate();
+    mon.textContent = MON[d.getMonth()];
+    wk.textContent = WK[d.getDay()];
+    ko.textContent =
+      `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())}`
+      + ` ${KO[d.getDay()]}요일`;
+    clock.textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+  render();
+  setInterval(render, 30 * 1000); // refresh every 30s
+</script>
+</body>
+</html>

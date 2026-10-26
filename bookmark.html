@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>bookmark</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .body { padding: 0; }
+  .head {
+    text-align: center;
+    padding: 12px 0 10px;
+    font-family: "Galmuri11", monospace;
+    font-size: 13px;
+    letter-spacing: 0.25em;
+    color: var(--ink);
+    border-bottom: 1.5px solid var(--line);
+  }
+  ol { list-style: none; }
+  li a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-bottom: 1.5px solid var(--line);
+    transition: background 0.15s, color 0.15s;
+  }
+  .no { font-family: "Galmuri9", monospace; font-size: 10px; color: var(--sub); width: 20px; }
+  .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .nm { font-size: 13px; }
+  .ds { font-family: "Galmuri9", monospace; font-size: 10px; color: var(--sub);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .arr { font-size: 10px; color: var(--deep); }
+
+  li a:hover { background: var(--deep); color: #fff; }
+  li a:hover .no, li a:hover .ds, li a:hover .arr { color: #eaf5fd; }
+  li a:hover .arr::after { content: " ♡"; }
+</style>
+</head>
+<body>
+<div class="win">
+  <div class="bar">
+    <div class="dots"><i></i><i></i><i></i></div>
+    <span>LINKS</span>
+    <span></span>
+  </div>
+  <div class="body">
+    <div class="head">BOOKMARK</div>
+    <ol id="list"></ol>
+  </div>
+</div>
+
+<script>
+  // ── edit your links here ──
+  const LINKS = [
+    { name: "인프런", desc: "스프링 강의", url: "https://www.inflearn.com" },
+    { name: "프로그래머스", desc: "코딩 테스트 연습", url: "https://school.programmers.co.kr" },
+    { name: "GitHub", desc: "내 저장소", url: "https://github.com" },
+    { name: "원티드", desc: "채용 공고", url: "https://www.wanted.co.kr" },
+    { name: "노션", desc: "DAILY BOARD", url: "https://www.notion.so" },
+  ];
+
+  LINKS.forEach((l, i) => {
+    const li = document.createElement("li");
+    li.innerHTML = `
+      <a target="_blank" rel="noopener">
+        <span class="no">${String(i + 1).padStart(2, "0")}.</span>
+        <span class="txt"><span class="nm"></span><span class="ds"></span></span>
+        <span class="arr">▶</span>
+      </a>`;
+    const a = li.querySelector("a");
+    a.href = l.url;
+    li.querySelector(".nm").textContent = l.name;
+    li.querySelector(".ds").textContent = l.desc;
+    list.appendChild(li);
+  });
+</script>
+</body>
+</html>

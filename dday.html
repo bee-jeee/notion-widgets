@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>d-day</title>
+<link rel="stylesheet" href="style.css">
+<script src="widget.js"></script>
+<style>
+  .body { gap: 10px; justify-content: center; }
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1.5px solid var(--line);
+  }
+  .row:nth-child(3n+1) { background: var(--soft); }
+  .row:nth-child(3n+2) { background: var(--lav); }
+  .row:nth-child(3n)   { background: var(--mint); }
+  .what { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .title { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .when { font-family: "Galmuri9", monospace; font-size: 10px; color: var(--sub); }
+  .d {
+    font-family: "Galmuri14", "Galmuri11", monospace;
+    font-size: 26px;
+    color: var(--deep);
+    white-space: nowrap;
+  }
+  .d.today { color: #e39ab0; }
+  .msg { font-size: 11px; color: var(--sub); text-align: center; }
+</style>
+</head>
+<body>
+<div class="win">
+  <div class="bar">
+    <div class="dots"><i></i><i></i><i></i></div>
+    <span>D-DAY</span>
+    <span>♡</span>
+  </div>
+  <div class="body" id="list"></div>
+</div>
+
+<script>
+  // ?items= in URL overrides notion
+  function fromQuery() {
+    const raw = new URLSearchParams(location.search).get("items");
+    if (!raw) return null;
+    return raw.split(";").map((s) => {
+      const [title, date] = s.split("|");
+      return { title: title.trim(), date: (date || "").trim() };
+    });
+  }
+
+  async function getItems() {
+    const q = fromQuery();
+    if (q) return q;
+    return (await widgetApi("ddays")).items;
+  }
+
+  // days between local midnights
+  function diff(dateStr) {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    const t = new Date(y, m - 1, d);
+    const n = new Date();
+    const today = new Date(n.getFullYear(), n.getMonth(), n.getDate());
+    return Math.round((t - today) / 86400000);
+  }
+
+  let items = [];
+  let failed = false;
+
+  function render() {
+    list.innerHTML = "";
+    if (failed || !items.length) {
+      const m = document.createElement("div");
+      m.className = "msg";
+      m.textContent = failed ? "노션 연결 실패" : "D-day DB에 항목을 추가해 보세요";
+      list.appendChild(m);
+      return;
+    }
+    items
+      .filter((it) => /^\d{4}-\d{2}-\d{2}$/.test(it.date))
+      .forEach((it) => {
+        const n = diff(it.date);
+        const label = n > 0 ? `D-${n}` : n === 0 ? "D-DAY" : `D+${-n}`;
+        const row = document.createElement("div");
+        row.className = "row";
+        row.innerHTML = `
+          <div class="what">
+            <div class="title"></div>
+            <div class="when">${it.date.replaceAll("-", ".")}</div>
+          </div>
+          <div class="d ${n === 0 ? "today" : ""}">${label}</div>`;
+        row.querySelector(".title").textContent =
+          (it.icon ? it.icon + " " : "") + it.title;
+        list.appendChild(row);
+      });
+  }
+
+  async function load() {
+    try { items = await getItems(); failed = false; }
+    catch (e) { failed = true; }
+    render();
+  }
+
+  load();
+  setInterval(load, 10 * 60 * 1000); // refresh every 10m
+</script>
+</body>
+</html>
