@@ -112,10 +112,16 @@
     return a;
   }
 
-  async function load() {
+    async function load() {
+    let days;
     try {
-      const { days } = await widgetApi("days", { limit: 14 });
-      const today = localToday();
+      ({ days } = await widgetApi("days", { limit: 14 }));
+    } catch (e) {
+      grid.innerHTML = '<div class="msg">노션 연결 실패</div>';
+      return;
+    }
+    try {
+      const today = ymd();
       grid.innerHTML = "";
       count.textContent = days.length;
       if (!days.length) {
@@ -124,7 +130,8 @@
       }
       days.forEach((d) => grid.appendChild(card(d, today)));
     } catch (e) {
-      grid.innerHTML = '<div class="msg">노션 연결 실패</div>';
+      console.error(e); // render bug, not notion
+      grid.innerHTML = '<div class="msg">표시 오류 · 콘솔 확인</div>';
     }
   }
 
