@@ -17,6 +17,7 @@ export default async function handler(req, res) {
       title: prop(p, "이름") || "(이름 없음)",
       icon: emoji(p),
       date: prop(p, "날짜").slice(0, 10),
+      url: p.url, // open the notion page
     }));
 
     send(res, { items });

@@ -30,6 +30,8 @@
     white-space: nowrap;
   }
   .d.today { color: #e39ab0; }
+  a.row { transition: transform 0.12s, border-color 0.12s; }
+  a.row:hover { transform: translateY(-2px); border-color: var(--deep); }
   .msg { font-size: 11px; color: var(--sub); text-align: center; }
 </style>
 </head>
@@ -86,8 +88,14 @@
       .forEach((it) => {
         const n = diff(it.date);
         const label = n > 0 ? `D-${n}` : n === 0 ? "D-DAY" : `D+${-n}`;
-        const row = document.createElement("div");
+        // link when the item has a page
+        const row = document.createElement(it.url ? "a" : "div");
         row.className = "row";
+        if (it.url) {
+          row.href = it.url;
+          row.target = "_blank";
+          row.rel = "noopener";
+        }
         row.innerHTML = `
           <div class="what">
             <div class="title"></div>
