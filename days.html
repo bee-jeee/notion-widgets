@@ -72,12 +72,6 @@
 <script>
   const WK = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
 
-  function localToday() {
-    const n = new Date();
-    const p = (x) => String(x).padStart(2, "0");
-    return `${n.getFullYear()}-${p(n.getMonth() + 1)}-${p(n.getDate())}`;
-  }
-
   // "1.5h / 5h ✅" -> 0.3
   function coreRatio(core) {
     const m = String(core || "").match(/([\d.]+)h\s*\/\s*([\d.]+)h/);
@@ -111,7 +105,9 @@
       </div>`;
     const chip = a.querySelector(".chip");
     chip.textContent = d.condition || "-";
-    if (d.condition) chip.classList.add(`c-${d.condition}`);
+    // "LOW🙃" -> LOW
+    const lv = String(d.condition || "").match(/^(LOW|MEDIUM|HIGH)/i);
+    if (lv) chip.classList.add(`c-${lv[1].toUpperCase()}`);
     a.querySelector(".ct").textContent = d.core || "-";
     return a;
   }
@@ -133,7 +129,8 @@
   }
 
   load();
-  setInterval(load, 5 * 60 * 1000); // refresh every 5m
+  onVisible(load);
+  setInterval(load, 60 * 1000); // refresh every 1m
 </script>
 </body>
 </html>

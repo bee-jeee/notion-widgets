@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>this week</title>
+<link rel="stylesheet" href="style.css">
+<script src="widget.js"></script>
+<style>
+  .body { gap: 12px; }
+  .head { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
+  .streak { display: flex; align-items: baseline; gap: 6px; }
+  .streak .n {
+    font-family: "Galmuri14", "Galmuri11", monospace;
+    font-size: 34px;
+    line-height: 1;
+    color: var(--deep);
+  }
+  .streak .u { font-size: 11px; color: var(--sub); }
+  .sum { text-align: right; font-family: "Galmuri9", monospace;
+         font-size: 10px; color: var(--sub); line-height: 1.6; }
+  .sum b { color: var(--ink); font-weight: normal; }
+
+  .chart {
+    position: relative;
+    flex: 1;
+    min-height: 110px;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    padding-top: 6px;
+  }
+  .goal-line {
+    position: absolute;
+    left: 0; right: 0;
+    border-top: 1.5px dashed var(--sky);
+    pointer-events: none;
+  }
+  .goal-line span {
+    position: absolute;
+    right: 0;
+    top: -14px;
+    font-family: "Galmuri9", monospace;
+    font-size: 9px;
+    color: var(--deep);
+  }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
+  .slot { flex: 1; width: 100%; display: flex; align-items: flex-end; }
+  .pillar {
+    width: 100%;
+    border-radius: 5px 5px 2px 2px;
+    background: var(--soft);
+    border: 1.5px solid var(--line);
+    min-height: 4px;
+  }
+  .pillar.hit { background: var(--sky); border-color: var(--deep); }
+  .pillar.future { background: transparent; border-style: dashed; }
+  .h { font-family: "Galmuri9", monospace; font-size: 9px; color: var(--sub); }
+  .d { font-family: "Galmuri9", monospace; font-size: 10px; color: var(--sub); }
+  .col.today .d { color: #fff; background: var(--deep); border-radius: 4px; padding: 0 4px; }
+  .msg { font-size: 11px; color: var(--sub); text-align: center; }
+</style>
+</head>
+<body>
+<div class="win">
+  <div class="bar">
+    <div class="dots"><i></i><i></i><i></i></div>
+    <span>THIS WEEK</span>
+    <span>5H</span>
+  </div>
+  <div class="body">
+    <div class="head">
+      <div class="streak"><span class="n" id="streak">-</span><span class="u">일 연속 🔥</span></div>
+      <div class="sum" id="sum"></div>
+    </div>
+    <div class="chart" id="chart"></div>
+  </div>
+</div>
+
+<script>
+  const GOAL = 300;          // minutes per day
+  const REST = [0, 6];       // 일·토: miss doesn't break
+  const KO = ["일", "월", "화", "수", "목", "금", "토"];
+
+  const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+  const hrs = (m) => (Math.round((m / 60) * 10) / 10).toString();
+
+  function monday(d) {
+    const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    return addDays(x, -((x.getDay() + 6) % 7));
+  }
+
+  // today never breaks; rest days are skipped
+  function streakOf(minutes, today) {
+    let n = (minutes[ymd(today)] || 0) >= GOAL ? 1 : 0;
+    for (let d = addDays(today, -1), i = 0; i < 120; d = addDays(d, -1), i++) {
+      const m = minutes[ymd(d)] || 0;
+      if (m >= GOAL) n++;
+      else if (REST.includes(d.getDay())) continue;
+      else break;
+    }
+    return n;
+  }
+
+  function render(minutes) {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const mon = monday(today);
+    const week = [...Array(7)].map((_, i) => addDays(mon, i));
+    const vals = week.map((d) => minutes[ymd(d)] || 0);
+    const total = vals.reduce((a, b) => a + b, 0);
+    const passed = week.filter((d) => d <= today).length;
+    const hit = vals.filter((v) => v >= GOAL).length;
+
+    streak.textContent = streakOf(minutes, today);
+    sum.innerHTML =
+      `이번 주 <b>${hrs(total)}h</b><br>` +
+      `평균 <b>${hrs(total / Math.max(passed, 1))}h</b> · 달성 <b>${hit}</b>일`;
+
+    const top = Math.max(GOAL * 1.2, ...vals);
+    chart.innerHTML = "";
+    const line = document.createElement("div");
+    line.className = "goal-line";
+    line.innerHTML = "<span>5h</span>";
+    chart.appendChild(line);
+
+    week.forEach((d, i) => {
+      const v = vals[i];
+      const col = document.createElement("div");
+      col.className = "col" + (ymd(d) === ymd(today) ? " today" : "");
+      const future = d > today;
+      col.innerHTML = `
+        <span class="h">${v ? hrs(v) : ""}</span>
+        <div class="slot"><div class="pillar ${v >= GOAL ? "hit" : ""} ${future ? "future" : ""}"
+          style="height:${Math.max((v / top) * 100, 4)}%"></div></div>
+        <span class="d">${KO[d.getDay()]}</span>`;
+      chart.appendChild(col);
+    });
+
+    // place 5h line against slot height
+    requestAnimationFrame(() => {
+      const slot = chart.querySelector(".slot");
+      if (!slot) return;
+      const cTop = chart.getBoundingClientRect().top;
+      const r = slot.getBoundingClientRect();
+      line.style.top = `${r.bottom - cTop - (GOAL / top) * r.height}px`;
+    });
+  }
+
+  let last = {};
+  async function load() {
+    const from = ymd(addDays(new Date(), -60));
+    try {
+      last = (await widgetApi("stats", { from })).minutes;
+      render(last);
+    } catch (e) {
+      chart.innerHTML = '<div class="msg" style="grid-column:1/-1">노션 연결 실패</div>';
+    }
+  }
+
+  load();
+  onVisible(load);
+  window.addEventListener("resize", () => render(last));
+  setInterval(load, 2 * 60 * 1000); // refresh every 2m
+</script>
+</body>
+</html>

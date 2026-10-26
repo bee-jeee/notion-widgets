@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>jobs</title>
+<link rel="stylesheet" href="style.css">
+<script src="widget.js"></script>
+<style>
+  .body { gap: 8px; padding: 12px 14px; }
+
+  .flow { display: flex; align-items: stretch; gap: 4px; flex-wrap: wrap; }
+  .stage {
+    flex: 1;
+    min-width: 64px;
+    padding: 6px 4px;
+    border-radius: 8px;
+    border: 1.5px solid var(--line);
+    background: #fff;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .stage .n {
+    font-family: "Galmuri14", "Galmuri11", monospace;
+    font-size: 18px;
+    line-height: 1;
+    color: var(--ink);
+  }
+  .stage .t { font-family: "Galmuri9", monospace; font-size: 9px; color: var(--sub); white-space: nowrap; }
+  .stage.zero .n { color: var(--line); }
+  .stage.s0 { background: #f6f8fa; }
+  .stage.s1 { background: var(--soft); }
+  .stage.s2 { background: var(--aqua); }
+  .stage.s3 { background: var(--lav); }
+  .stage.s4 { background: var(--butter); }
+  .stage.s5 { background: var(--mint); border-color: #9fd3c7; }
+  .arrow { align-self: center; color: var(--sky); font-size: 10px; }
+
+  .side { font-family: "Galmuri9", monospace; font-size: 10px; color: var(--sub); text-align: right; min-height: 0; }
+  .side:empty { display: none; }
+
+  .sec { font-family: "Galmuri9", monospace; font-size: 10px;
+         letter-spacing: 0.2em; color: var(--sub); }
+  .dl { display: flex; flex-direction: column; gap: 5px; }
+  .dl a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 10px;
+    border-radius: 8px;
+    border: 1.5px solid var(--line);
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .dl a:hover { background: var(--soft); border-color: var(--sky); }
+  .dd {
+    font-family: "Galmuri11", monospace;
+    font-size: 12px;
+    color: var(--deep);
+    min-width: 44px;
+  }
+  .dd.soon { color: #e39ab0; }
+  .co { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .co .c { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .co .p { font-family: "Galmuri9", monospace; font-size: 10px; color: var(--sub);
+           white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tag { font-family: "Galmuri9", monospace; font-size: 9px; padding: 1px 6px;
+         border-radius: 4px; background: var(--soft); color: var(--deep); }
+  .msg { font-size: 11px; color: var(--sub); text-align: center; padding: 10px 0; }
+</style>
+</head>
+<body>
+<div class="win">
+  <div class="bar">
+    <div class="dots"><i></i><i></i><i></i></div>
+    <span>JOBS</span>
+    <span id="total"></span>
+  </div>
+  <div class="body">
+    <div class="flow" id="flow"></div>
+    <div class="side" id="side"></div>
+    <div class="sec">UPCOMING DEADLINE</div>
+    <div class="dl" id="dl"></div>
+  </div>
+</div>
+
+<script>
+  const FLOW = ["관심", "지원", "서류 통과", "코테/과제", "면접", "최종 합격"];
+  const OPEN = ["관심", "지원"]; // still worth a deadline
+  const SOON = 3;                // days -> pink
+
+  function daysLeft(dateStr) {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    const t = new Date(y, m - 1, d);
+    const n = new Date();
+    const today = new Date(n.getFullYear(), n.getMonth(), n.getDate());
+    return Math.round((t - today) / 86400000);
+  }
+
+  function render(jobs) {
+    const count = (s) => jobs.filter((j) => j.stage === s).length;
+    total.textContent = jobs.length;
+
+    flow.innerHTML = "";
+    FLOW.forEach((s, i) => {
+      if (i) {
+        const a = document.createElement("span");
+        a.className = "arrow";
+        a.textContent = "▸";
+        flow.appendChild(a);
+      }
+      const n = count(s);
+      const el = document.createElement("div");
+      el.className = `stage s${i}` + (n ? "" : " zero");
+      el.innerHTML = `<span class="n">${n}</span><span class="t">${s}</span>`;
+      flow.appendChild(el);
+    });
+
+    // keep closed ones small
+    const out = count("불합격");
+    const hold = count("보류");
+    side.textContent = out || hold ? `불합격 ${out} · 보류 ${hold}` : "";
+
+    const up = jobs
+      .filter((j) => OPEN.includes(j.stage) && j.deadline && daysLeft(j.deadline) >= 0)
+      .sort((a, b) => a.deadline.localeCompare(b.deadline))
+      .slice(0, 3);
+
+    dl.innerHTML = "";
+    if (!up.length) {
+      dl.innerHTML = '<div class="msg">다가오는 마감이 없어요</div>';
+      return;
+    }
+    up.forEach((j) => {
+      const n = daysLeft(j.deadline);
+      const a = document.createElement("a");
+      a.href = j.link;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.innerHTML = `
+        <span class="dd ${n <= SOON ? "soon" : ""}">${n === 0 ? "D-DAY" : "D-" + n}</span>
+        <span class="co"><span class="c"></span><span class="p"></span></span>
+        <span class="tag"></span>`;
+      a.querySelector(".c").textContent = j.company;
+      a.querySelector(".p").textContent = j.position;
+      a.querySelector(".tag").textContent = j.stage;
+      dl.appendChild(a);
+    });
+  }
+
+  async function load() {
+    try {
+      render((await widgetApi("jobs")).jobs);
+    } catch (e) {
+      dl.innerHTML = '<div class="msg">노션 연결 실패</div>';
+    }
+  }
+
+  load();
+  onVisible(load);
+  setInterval(load, 2 * 60 * 1000); // refresh every 2m
+</script>
+</body>
+</html>
