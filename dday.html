@@ -7,7 +7,8 @@
 <link rel="stylesheet" href="style.css">
 <script src="widget.js"></script>
 <style>
-  .body { gap: 10px; justify-content: center; }
+  .body { justify-content: center; }
+  #list { display: flex; flex-direction: column; gap: 10px; justify-content: center; }
   .row {
     display: flex;
     align-items: center;
@@ -40,9 +41,24 @@
   <div class="bar">
     <div class="dots"><i></i><i></i><i></i></div>
     <span>D-DAY</span>
-    <span>♡</span>
+    <div class="bar-right">
+      <span>♡</span>
+      <button class="add" id="addBtn" type="button" aria-label="추가">+</button>
+    </div>
   </div>
-  <div class="body" id="list"></div>
+  <div class="toast" id="toast"></div>
+  <div class="body">
+    <div class="panel" id="panel">
+      <input id="fTitle" type="text" placeholder="이름" maxlength="200">
+      <input id="fDate" type="date">
+      <div class="err" id="fErr"></div>
+      <div class="actions">
+        <button type="button" id="fCancel">취소</button>
+        <button type="button" id="fSave" class="primary">저장</button>
+      </div>
+    </div>
+    <div id="list"></div>
+  </div>
 </div>
 
 <script>
@@ -117,6 +133,37 @@
   load();
   onVisible(load);
   setInterval(load, 10 * 60 * 1000); // refresh every 10m
+
+  addBtn.addEventListener("click", () => {
+    panel.classList.toggle("open");
+    fErr.textContent = "";
+    if (panel.classList.contains("open")) fTitle.focus();
+  });
+  fCancel.addEventListener("click", () => panel.classList.remove("open"));
+
+  async function save() {
+    fErr.textContent = "";
+    const title = fTitle.value.trim();
+    if (!title || !fDate.value) {
+      fErr.textContent = "이름과 날짜를 입력해 주세요";
+      return;
+    }
+    fSave.disabled = true;
+    try {
+      await widgetPost("ddays", { title, date: fDate.value });
+      fTitle.value = "";
+      fDate.value = "";
+      panel.classList.remove("open");
+      load();
+    } catch (e) {
+      fErr.textContent = "저장 실패, 다시 시도해 주세요";
+    } finally {
+      fSave.disabled = false;
+    }
+  }
+  fSave.addEventListener("click", save);
+  fTitle.addEventListener("keydown", (e) => { if (e.key === "Enter") save(); });
+  fDate.addEventListener("keydown", (e) => { if (e.key === "Enter") save(); });
 </script>
 </body>
 </html>

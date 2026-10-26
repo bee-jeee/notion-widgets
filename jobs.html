@@ -75,9 +75,28 @@
   <div class="bar">
     <div class="dots"><i></i><i></i><i></i></div>
     <span>JOBS</span>
-    <span id="total"></span>
+    <div class="bar-right">
+      <span id="total"></span>
+      <button class="add" id="addBtn" type="button" aria-label="추가">+</button>
+    </div>
   </div>
   <div class="body">
+    <div class="panel" id="panel">
+      <input id="fCompany" type="text" placeholder="회사" maxlength="200">
+      <div class="row2">
+        <input id="fPosition" type="text" placeholder="포지션" maxlength="500">
+        <select id="fStage"></select>
+      </div>
+      <div class="row2">
+        <input id="fDeadline" type="date">
+        <input id="fLink" type="url" placeholder="공고 링크">
+      </div>
+      <div class="err" id="fErr"></div>
+      <div class="actions">
+        <button type="button" id="fCancel">취소</button>
+        <button type="button" id="fSave" class="primary">저장</button>
+      </div>
+    </div>
     <div class="flow" id="flow"></div>
     <div class="side" id="side"></div>
     <div class="sec">UPCOMING DEADLINE</div>
@@ -160,6 +179,50 @@
   load();
   onVisible(load);
   setInterval(load, 2 * 60 * 1000); // refresh every 2m
+
+  const STAGES = ["관심", "지원", "서류 통과", "코테/과제", "면접", "최종 합격", "불합격", "보류"];
+  fStage.innerHTML = STAGES.map((s) => `<option${s === "관심" ? " selected" : ""}>${s}</option>`).join("");
+
+  addBtn.addEventListener("click", () => {
+    panel.classList.toggle("open");
+    fErr.textContent = "";
+    if (panel.classList.contains("open")) fCompany.focus();
+  });
+  fCancel.addEventListener("click", () => panel.classList.remove("open"));
+
+  async function save() {
+    fErr.textContent = "";
+    const company = fCompany.value.trim();
+    if (!company) {
+      fErr.textContent = "회사를 입력해 주세요";
+      return;
+    }
+    fSave.disabled = true;
+    try {
+      await widgetPost("jobs", {
+        company,
+        position: fPosition.value.trim(),
+        stage: fStage.value,
+        deadline: fDeadline.value,
+        link: fLink.value.trim(),
+      });
+      fCompany.value = "";
+      fPosition.value = "";
+      fStage.value = "관심";
+      fDeadline.value = "";
+      fLink.value = "";
+      panel.classList.remove("open");
+      load();
+    } catch (e) {
+      fErr.textContent = "저장 실패, 다시 시도해 주세요";
+    } finally {
+      fSave.disabled = false;
+    }
+  }
+  fSave.addEventListener("click", save);
+  [fCompany, fPosition, fLink].forEach((el) =>
+    el.addEventListener("keydown", (e) => { if (e.key === "Enter") save(); })
+  );
 </script>
 </body>
 </html>

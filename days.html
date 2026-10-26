@@ -62,8 +62,12 @@
   <div class="bar">
     <div class="dots"><i></i><i></i><i></i></div>
     <span>DAYS</span>
-    <span id="count"></span>
+    <div class="bar-right">
+      <span id="count"></span>
+      <button class="add" id="addBtn" type="button" aria-label="오늘 페이지 열기">+</button>
+    </div>
   </div>
+  <div class="toast" id="toast"></div>
   <div class="body">
     <div class="grid" id="grid"></div>
   </div>
@@ -138,6 +142,24 @@
   load();
   onVisible(load);
   setInterval(load, 60 * 1000); // refresh every 1m
+
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add("show");
+    setTimeout(() => toast.classList.remove("show"), 3000);
+  }
+
+  addBtn.addEventListener("click", async () => {
+    const w = window.open("", "_blank"); // open sync, fill in after the POST
+    try {
+      const { url } = await widgetPost("days", { date: ymd() });
+      if (w) w.location = url;
+      load();
+    } catch (e) {
+      if (w) w.close();
+      showToast("오늘 페이지 열기 실패");
+    }
+  });
 </script>
 </body>
 </html>

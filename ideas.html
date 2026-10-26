@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ideas</title>
+<link rel="stylesheet" href="style.css">
+<script src="widget.js"></script>
+<style>
+  .body { gap: 8px; padding: 12px 14px; }
+
+  .addrow { display: flex; gap: 6px; flex: none; }
+  .addrow input {
+    flex: 1;
+    min-width: 0;
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--ink);
+    background: #fff;
+    border: 1.5px solid var(--line);
+    border-radius: 6px;
+    padding: 6px 8px;
+    outline: none;
+  }
+  .addrow select {
+    font-family: inherit;
+    font-size: 11px;
+    color: var(--ink);
+    background: #fff;
+    border: 1.5px solid var(--line);
+    border-radius: 6px;
+    padding: 6px 4px;
+    outline: none;
+  }
+  .addrow input:focus, .addrow select:focus { border-color: var(--deep); }
+  .addrow button {
+    width: 28px;
+    flex: none;
+    border: 1.5px solid var(--deep);
+    border-radius: 6px;
+    background: var(--deep);
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .addrow button:disabled { opacity: 0.6; cursor: default; }
+  .err { flex: none; font-size: 10px; color: #c66; min-height: 12px; }
+
+  .list { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; }
+  .idea {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1.5px solid var(--line);
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .idea:hover { background: var(--soft); border-color: var(--sky); }
+  .status { font-family: "Galmuri9", monospace; font-size: 9px; padding: 1px 6px;
+            border-radius: 4px; flex: none; }
+  .status.s-보관 { background: var(--soft); color: var(--deep); }
+  .status.s-검토 { background: var(--butter); color: var(--ink); }
+  .ititle { flex: 1; min-width: 0; font-size: 12px; white-space: nowrap;
+            overflow: hidden; text-overflow: ellipsis; }
+  .cat { font-family: "Galmuri9", monospace; font-size: 9px; color: var(--sub); flex: none; }
+  .msg { font-size: 11px; color: var(--sub); text-align: center; padding: 10px 0; }
+</style>
+</head>
+<body>
+<div class="win">
+  <div class="bar">
+    <div class="dots"><i></i><i></i><i></i></div>
+    <span>IDEAS</span>
+    <span id="count"></span>
+  </div>
+  <div class="body">
+    <div class="addrow">
+      <input id="fTitle" type="text" placeholder="아이디어" maxlength="200">
+      <select id="fCategory">
+        <option value="">선택 안 함</option>
+        <option value="프로젝트">프로젝트</option>
+        <option value="블로그">블로그</option>
+        <option value="공부">공부</option>
+        <option value="생활">생활</option>
+        <option value="기타">기타</option>
+      </select>
+      <button id="fSave" type="button" aria-label="추가">+</button>
+    </div>
+    <div class="err" id="fErr"></div>
+    <div class="list" id="list"></div>
+  </div>
+</div>
+
+<script>
+  function row(it) {
+    const a = document.createElement("a");
+    a.className = "idea";
+    a.href = it.url;
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.innerHTML = `
+      <span class="status"></span>
+      <span class="ititle"></span>
+      <span class="cat"></span>`;
+    const status = a.querySelector(".status");
+    status.textContent = it.status || "";
+    if (it.status) status.classList.add(`s-${it.status}`);
+    a.querySelector(".ititle").textContent = it.title;
+    a.querySelector(".cat").textContent = it.category || "";
+    return a;
+  }
+
+  async function load() {
+    let items;
+    try {
+      ({ items } = await widgetApi("ideas"));
+    } catch (e) {
+      list.innerHTML = '<div class="msg">노션 연결 실패</div>';
+      return;
+    }
+    count.textContent = items.length;
+    list.innerHTML = "";
+    if (!items.length) {
+      list.innerHTML = '<div class="msg">아이디어를 적어 보세요</div>';
+      return;
+    }
+    items.forEach((it) => list.appendChild(row(it)));
+  }
+
+  async function save() {
+    fErr.textContent = "";
+    const title = fTitle.value.trim();
+    if (!title) {
+      fErr.textContent = "아이디어를 입력해 주세요";
+      return;
+    }
+    fSave.disabled = true;
+    try {
+      await widgetPost("ideas", { title, category: fCategory.value });
+      fTitle.value = "";
+      fCategory.value = "";
+      load();
+    } catch (e) {
+      fErr.textContent = "저장 실패, 다시 시도해 주세요";
+    } finally {
+      fSave.disabled = false;
+    }
+  }
+  fSave.addEventListener("click", save);
+  fTitle.addEventListener("keydown", (e) => { if (e.key === "Enter") save(); });
+
+  load();
+  onVisible(load);
+  setInterval(load, 5 * 60 * 1000); // refresh every 5m
+</script>
+</body>
+</html>

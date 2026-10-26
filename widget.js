@@ -4,8 +4,18 @@
   const key = new URLSearchParams(location.search).get("key") || "";
 
   async function call(path, params = {}, method = "GET") {
-    const qs = new URLSearchParams({ ...params, key });
-    const res = await fetch(`/api/${path}?${qs}`, { method });
+    if (method === "GET") {
+      const qs = new URLSearchParams({ ...params, key });
+      const res = await fetch(`/api/${path}?${qs}`);
+      if (!res.ok) throw new Error(`${path} ${res.status}`);
+      return res.json();
+    }
+    const qs = new URLSearchParams({ key });
+    const res = await fetch(`/api/${path}?${qs}`, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+    });
     if (!res.ok) throw new Error(`${path} ${res.status}`);
     return res.json();
   }

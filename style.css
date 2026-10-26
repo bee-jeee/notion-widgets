@@ -81,3 +81,76 @@ body {
 }
 
 a { color: inherit; text-decoration: none; }
+
+/* header right-side cluster + add button, shared by widgets with a + form */
+.bar-right { display: flex; align-items: center; gap: 6px; }
+.add {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--deep);
+  background: #fff;
+  border: 1.5px solid var(--deep);
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: none;
+}
+.add:hover { background: var(--soft); }
+
+/* inline add panel, toggled open under the bar */
+.panel {
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  background: var(--soft);
+  flex: none;
+}
+.panel.open { display: flex; }
+.panel .row2 { display: flex; gap: 6px; }
+.panel .row2 > * { flex: 1; min-width: 0; }
+.panel input, .panel select {
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--ink);
+  background: #fff;
+  border: 1.5px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 8px;
+  outline: none;
+  width: 100%;
+}
+.panel input:focus, .panel select:focus { border-color: var(--deep); }
+.panel .actions { display: flex; justify-content: flex-end; gap: 6px; }
+.panel button {
+  font-family: inherit;
+  font-size: 11px;
+  border: 1.5px solid var(--line);
+  border-radius: 6px;
+  padding: 5px 10px;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+}
+.panel button.primary { background: var(--deep); color: #fff; border-color: var(--deep); }
+.panel button:disabled { opacity: 0.6; cursor: default; }
+.panel .err { font-size: 10px; color: #c66; }
+
+/* brief error line, shown then hidden by JS */
+.toast {
+  display: none;
+  flex: none;
+  font-size: 10px;
+  color: #c66;
+  text-align: center;
+  padding: 4px 0;
+  border-bottom: 1.5px solid var(--line);
+}
+.toast.show { display: block; }
