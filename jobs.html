@@ -43,7 +43,7 @@
 
   .sec { font-family: "Galmuri9", monospace; font-size: 10px;
          letter-spacing: 0.2em; color: var(--sub); }
-  .dl { display: flex; flex-direction: column; gap: 5px; }
+  .dl { display: flex; flex-direction: column; gap: 5px; flex: 1; justify-content: center; }
   .dl a {
     display: flex;
     align-items: center;
@@ -75,10 +75,7 @@
   <div class="bar">
     <div class="dots"><i></i><i></i><i></i></div>
     <span>JOBS</span>
-    <div class="bar-right">
-      <span id="total"></span>
-      <button class="add" id="addBtn" type="button" aria-label="추가">+</button>
-    </div>
+    <span id="total"></span>
   </div>
   <div class="body">
     <div class="panel" id="panel">
@@ -101,6 +98,7 @@
     <div class="side" id="side"></div>
     <div class="sec">UPCOMING DEADLINE</div>
     <div class="dl" id="dl"></div>
+    <div class="add-row" id="addRow">+ 추가</div>
   </div>
 </div>
 
@@ -183,7 +181,7 @@
   const STAGES = ["관심", "지원", "서류 통과", "코테/과제", "면접", "최종 합격", "불합격", "보류"];
   fStage.innerHTML = STAGES.map((s) => `<option${s === "관심" ? " selected" : ""}>${s}</option>`).join("");
 
-  addBtn.addEventListener("click", () => {
+  addRow.addEventListener("click", () => {
     panel.classList.toggle("open");
     fErr.textContent = "";
     if (panel.classList.contains("open")) fCompany.focus();

@@ -82,25 +82,6 @@ body {
 
 a { color: inherit; text-decoration: none; }
 
-/* header right-side cluster + add button, shared by widgets with a + form */
-.bar-right { display: flex; align-items: center; gap: 6px; }
-.add {
-  width: 16px;
-  height: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  line-height: 1;
-  color: var(--deep);
-  background: #fff;
-  border: 1.5px solid var(--deep);
-  border-radius: 4px;
-  cursor: pointer;
-  user-select: none;
-}
-.add:hover { background: var(--soft); }
-
 /* inline add panel, toggled open under the bar */
 .panel {
   display: none;
@@ -142,6 +123,20 @@ a { color: inherit; text-decoration: none; }
 .panel button.primary { background: var(--deep); color: #fff; border-color: var(--deep); }
 .panel button:disabled { opacity: 0.6; cursor: default; }
 .panel .err { font-size: 10px; color: #c66; }
+
+/* dashed "+ 추가" row, pinned to the bottom of the widget */
+.add-row {
+  flex: none;
+  margin-top: auto;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1.5px dashed var(--line);
+  text-align: center;
+  font-size: 11px;
+  color: var(--sub);
+  cursor: pointer;
+}
+.add-row:hover { border-color: var(--deep); color: var(--deep); }
 
 /* brief error line, shown then hidden by JS */
 .toast {

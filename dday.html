@@ -7,8 +7,7 @@
 <link rel="stylesheet" href="style.css">
 <script src="widget.js"></script>
 <style>
-  .body { justify-content: center; }
-  #list { display: flex; flex-direction: column; gap: 10px; justify-content: center; }
+  #list { flex: 1; display: flex; flex-direction: column; gap: 10px; justify-content: center; }
   .row {
     display: flex;
     align-items: center;
@@ -41,12 +40,8 @@
   <div class="bar">
     <div class="dots"><i></i><i></i><i></i></div>
     <span>D-DAY</span>
-    <div class="bar-right">
-      <span>♡</span>
-      <button class="add" id="addBtn" type="button" aria-label="추가">+</button>
-    </div>
+    <span>♡</span>
   </div>
-  <div class="toast" id="toast"></div>
   <div class="body">
     <div class="panel" id="panel">
       <input id="fTitle" type="text" placeholder="이름" maxlength="200">
@@ -58,6 +53,7 @@
       </div>
     </div>
     <div id="list"></div>
+    <div class="add-row" id="addRow">+ 추가</div>
   </div>
 </div>
 
@@ -134,7 +130,7 @@
   onVisible(load);
   setInterval(load, 10 * 60 * 1000); // refresh every 10m
 
-  addBtn.addEventListener("click", () => {
+  addRow.addEventListener("click", () => {
     panel.classList.toggle("open");
     fErr.textContent = "";
     if (panel.classList.contains("open")) fTitle.focus();

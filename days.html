@@ -9,8 +9,10 @@
 <style>
   .body { padding: 12px; overflow-y: auto; }
   .grid {
+    flex: 1;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+    align-content: center;
     gap: 10px;
   }
   .day {
@@ -62,14 +64,12 @@
   <div class="bar">
     <div class="dots"><i></i><i></i><i></i></div>
     <span>DAYS</span>
-    <div class="bar-right">
-      <span id="count"></span>
-      <button class="add" id="addBtn" type="button" aria-label="오늘 페이지 열기">+</button>
-    </div>
+    <span id="count"></span>
   </div>
   <div class="toast" id="toast"></div>
   <div class="body">
     <div class="grid" id="grid"></div>
+    <div class="add-row" id="addRow">+ 오늘 페이지 열기</div>
   </div>
 </div>
 
@@ -149,7 +149,7 @@
     setTimeout(() => toast.classList.remove("show"), 3000);
   }
 
-  addBtn.addEventListener("click", async () => {
+  addRow.addEventListener("click", async () => {
     const w = window.open("", "_blank"); // open sync, fill in after the POST
     try {
       const { url } = await widgetPost("days", { date: ymd() });
