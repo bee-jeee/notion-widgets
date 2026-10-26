@@ -17,6 +17,7 @@
 | `jobs.html` | 지원 현황, `+`로 새 지원 추가 | `/api/jobs` ← 지원 현황 DB |
 | `days.html` | 날짜 페이지 카드 목록 (누르면 새 탭), `+`로 오늘 페이지 생성·열기 | `/api/days` ← 데일리 DB |
 | `ideas.html` | 아이디어 박스 목록 + 한 줄 입력으로 바로 추가 | `/api/ideas` ← 아이디어 박스 DB |
+| `coding.html` | 코테 요약 · 오늘 복습 목록 · 약한 유형, `+`로 새 기록 추가 | `/api/coding` ← 코테 기록 DB |
 | `bookmark.html` | 북마크 | 파일 안 `LINKS` 배열 |
 | `lib/notion.js` | 노션 호출 · 속성 파싱 · 접근키 · 캐시 · 입력 검증 공통 처리 | |
 | `widget.js` | `widgetApi`(GET) / `widgetPost`(POST, JSON body) 공통 호출 헬퍼 | |
@@ -48,7 +49,7 @@
    | `WIDGET_KEY` | 아무 긴 랜덤 문자열 (예: `openssl rand -hex 16`) |
 
    DB ID는 `lib/notion.js`에 기본값이 들어 있어서 따로 안 넣어도 됨
-   (바꾸려면 `BLOCKS_DS`, `DAILY_DS`, `DDAY_DS`, `JOBS_DS`, `IDEAS_DS`)
+   (바꾸려면 `BLOCKS_DS`, `DAILY_DS`, `DDAY_DS`, `JOBS_DS`, `IDEAS_DS`, `CODING_DS`)
 4. 환경변수 저장 후 Deployments → 최신 배포 ··· → **Redeploy**
 5. 확인: `https://<프로젝트>.vercel.app/api/blocks?key=<WIDGET_KEY>` 가 JSON을 주면 성공
 
@@ -62,11 +63,12 @@ https://<프로젝트>.vercel.app/dday.html?key=...
 https://<프로젝트>.vercel.app/jobs.html?key=...
 https://<프로젝트>.vercel.app/days.html?key=...
 https://<프로젝트>.vercel.app/ideas.html?key=...
+https://<프로젝트>.vercel.app/coding.html?key=...
 https://<프로젝트>.vercel.app/date.html
 https://<프로젝트>.vercel.app/bookmark.html
 ```
 
-권장 높이: date · dday 230px / timer 330px / bookmark 360px / jobs 300px / days 300px / ideas 300px
+권장 높이: date · dday 230px / timer 330px / bookmark 360px / jobs 300px / days 300px / ideas 300px / coding 230~260px
 
 ## 노션 DB 규칙 (위젯이 읽는 속성)
 
@@ -79,9 +81,24 @@ https://<프로젝트>.vercel.app/bookmark.html
   - `분류` 허용값: 프로젝트, 블로그, 공부, 생활, 기타
   - 위젯은 `상태`가 "실행"·"버림"이 아닌 것만 최근 생성순 6개 표시, 새로 추가하면 `상태`="보관"
 - **데일리**: `날짜`가 있는 페이지만, 최근 14개. 기본 템플릿이 설정돼 있어야 `+`로 생성한 페이지가 채워짐
+- **코테 기록**: `문제`(제목) `플랫폼`(select) `난이도`(select) `유형`(multi_select) `결과`(select)
+  `푼 날짜`(date) `링크`(url) `복습 단계`(number) `마지막 복습`(date) `메모`
+  - `플랫폼` 허용값: 프로그래머스, 백준, LeetCode, 기타
+  - `난이도` 허용값: Lv0~Lv5, 브론즈, 실버, 골드, 플래티넘
+  - `유형` 허용값: 구현, 해시, 정렬, 스택/큐, 그리디, DFS/BFS, DP, 이분탐색, 그래프, 문자열, 기타
+  - `결과` 허용값: 혼자 풂, 힌트 봄, 답 봄
 
-노션에서 수정하면 최대 1분(캐시) + 위젯 새로고침 주기(타이머 5분, days 1분, D-day 10분, jobs 2분, ideas 5분) 안에 반영.
+노션에서 수정하면 최대 1분(캐시) + 위젯 새로고침 주기(타이머 5분, days 1분, D-day 10분, jobs 2분, ideas 5분, coding 2분) 안에 반영.
 바로 보고 싶으면 노션 페이지 새로고침.
+
+## 복습 규칙 (`coding.html`)
+
+- 간격은 `푼 날짜` 기준 3일 → 7일 → 14일 (`복습 단계` 0, 1, 2에 대응)
+- `복습 단계`가 3이면 복습 끝 (더 이상 복습 대상에 안 뜨고, `+`로 눌러도 더 안 올라감)
+- 다음 복습일 = `푼 날짜 + 간격[단계]`일. **브라우저 기준 오늘**이 그 날짜 이상이면 "복습 대상"
+- 밀린 복습도 계속 표시되고 다음 복습일이 가까운 순으로 정렬됨 (밀린 일수는 `+N일`로 표시)
+- `✓`를 누르면 `복습 단계` +1(최대 3), `마지막 복습`=오늘로 서버에 반영
+  - 서버는 `id`로 페이지를 먼저 조회해 부모가 코테 기록 DB인지 확인 후 처리 (다른 DB 페이지면 403)
 
 ## `+` 추가 기능
 
@@ -99,6 +116,7 @@ https://<프로젝트>.vercel.app/bookmark.html
 | `/api/...`가 401 | 주소의 `?key=`가 `WIDGET_KEY`와 다름 |
 | `/api/...`가 400 | `+`로 보낸 입력이 비어있거나, 날짜 형식이 `YYYY-MM-DD`가 아니거나, select 값이 허용 목록 밖임 |
 | `/api/...`가 405 | 위젯이 지원하지 않는 HTTP method로 호출됨 |
+| `/api/coding`이 403 | 복습 완료 요청(`id`)이 코테 기록 DB가 아닌 다른 노션 페이지를 가리킴 |
 | `/api/...`가 502 | 노션 호출 실패 → Vercel 대시보드 Logs에서 원인 확인 |
 | 블록이 안 보임 | `활성` 해제, 요일 미포함, 시작/끝이 `HH:MM` 아님 |
 | `+`로 만든 데일리 페이지에 템플릿 내용(연결된 DB 뷰 등)이 안 보임 | 노션이 템플릿을 비동기로 채우는 중일 수 있음. 페이지를 새로고침해서 확인 |

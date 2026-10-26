@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>coding test</title>
+<link rel="stylesheet" href="style.css">
+<script src="widget.js"></script>
+<style>
+  .body { gap: 6px; padding: 10px 12px; }
+
+  .summary {
+    flex: none;
+    font-family: "Galmuri9", monospace;
+    font-size: 10px;
+    color: var(--sub);
+  }
+  .summary b { color: var(--deep); font-weight: normal; }
+
+  .sec {
+    flex: none;
+    font-family: "Galmuri9", monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--sub);
+  }
+
+  .rv-list { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 4px; justify-content: center; }
+  .rv-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1.5px solid var(--line);
+    background: var(--soft);
+  }
+  .rv-title {
+    flex: 1;
+    min-width: 0;
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .rv-tag {
+    flex: none;
+    font-family: "Galmuri9", monospace;
+    font-size: 8px;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: #fff;
+    border: 1.5px solid var(--line);
+    color: var(--sub);
+  }
+  .rv-day { flex: none; font-family: "Galmuri9", monospace; font-size: 9px; color: var(--deep); }
+  .rv-over { flex: none; font-family: "Galmuri9", monospace; font-size: 9px; color: #e39ab0; }
+  .rv-check {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    border-radius: 4px;
+    border: 1.5px solid var(--deep);
+    background: #fff;
+    color: var(--deep);
+    cursor: pointer;
+  }
+  .rv-check:disabled { opacity: 0.5; cursor: default; }
+  .msg { font-size: 10px; color: var(--sub); text-align: center; padding: 2px 0; }
+
+  .weak { flex: none; font-size: 10px; color: var(--sub); }
+  .weak:empty { display: none; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .chip-btn {
+    font-family: inherit;
+    font-size: 10px;
+    padding: 3px 7px;
+    border-radius: 10px;
+    border: 1.5px solid var(--line);
+    background: #fff;
+    color: var(--sub);
+    cursor: pointer;
+  }
+  .chip-btn.sel { background: var(--deep); color: #fff; border-color: var(--deep); }
+</style>
+</head>
+<body>
+<div class="win">
+  <div class="bar">
+    <div class="dots"><i></i><i></i><i></i></div>
+    <span>CODING TEST</span>
+    <span></span>
+  </div>
+  <div class="body">
+    <div class="panel" id="panel">
+      <input id="fTitle" type="text" placeholder="문제" maxlength="200">
+      <div class="row2">
+        <select id="fPlatform"></select>
+        <select id="fLevel"></select>
+      </div>
+      <div class="chips" id="fTypes"></div>
+      <div class="row2">
+        <select id="fResult"></select>
+        <input id="fLink" type="url" placeholder="링크">
+      </div>
+      <div class="err" id="fErr"></div>
+      <div class="actions">
+        <button type="button" id="fCancel">취소</button>
+        <button type="button" id="fSave" class="primary">저장</button>
+      </div>
+    </div>
+    <div class="summary" id="summary"></div>
+    <div class="sec" id="listLabel">오늘 복습</div>
+    <div class="rv-list" id="rvList"></div>
+    <div class="weak" id="weak"></div>
+    <div class="add-row" id="addRow">+ 추가</div>
+  </div>
+</div>
+
+<script>
+  const PLATFORMS = ["프로그래머스", "백준", "LeetCode", "기타"];
+  const LEVELS = ["Lv0", "Lv1", "Lv2", "Lv3", "Lv4", "Lv5", "브론즈", "실버", "골드", "플래티넘"];
+  const TYPES = ["구현", "해시", "정렬", "스택/큐", "그리디", "DFS/BFS", "DP", "이분탐색", "그래프", "문자열", "기타"];
+  const RESULTS = ["혼자 풂", "힌트 봄", "답 봄"];
+  const INTERVALS = [3, 7, 14];
+
+  // null once review is finished (step >= 3)
+  function nextReview(solved, step) {
+    if (step >= INTERVALS.length) return null;
+    const [y, m, d] = solved.split("-").map(Number);
+    const dt = new Date(y, m - 1, d);
+    dt.setDate(dt.getDate() + INTERVALS[step]);
+    return ymd(dt);
+  }
+
+  // days between local midnights
+  function daysBetween(a, b) {
+    const toDate = (s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+    return Math.round((toDate(b) - toDate(a)) / 86400000);
+  }
+
+  function monday(d) {
+    const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
+    return x;
+  }
+
+  function dueRow(p, today) {
+    const over = daysBetween(p.next, today);
+    const row = document.createElement("div");
+    row.className = "rv-row";
+    row.innerHTML = `
+      <a class="rv-title" target="_blank" rel="noopener"></a>
+      <span class="rv-tag"></span>
+      <span class="rv-tag"></span>
+      <span class="rv-day">${INTERVALS[p.step]}일차</span>
+      <span class="rv-over">${over > 0 ? "+" + over + "일" : ""}</span>
+      <button type="button" class="rv-check">✓</button>`;
+    const a = row.querySelector(".rv-title");
+    a.href = p.link;
+    a.textContent = p.title;
+    const [plat, lvl] = row.querySelectorAll(".rv-tag");
+    plat.textContent = p.platform || "";
+    lvl.textContent = p.level || "";
+    const btn = row.querySelector(".rv-check");
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      try {
+        await widgetPost("coding", { action: "review", id: p.id, date: ymd() });
+        load();
+      } catch (e) {
+        btn.disabled = false;
+      }
+    });
+    return row;
+  }
+
+  function recentRow(p) {
+    const row = document.createElement("div");
+    row.className = "rv-row";
+    row.innerHTML = `
+      <a class="rv-title" target="_blank" rel="noopener"></a>
+      <span class="rv-tag"></span>
+      <span class="rv-tag"></span>`;
+    const a = row.querySelector(".rv-title");
+    a.href = p.link;
+    a.textContent = p.title;
+    const [plat, lvl] = row.querySelectorAll(".rv-tag");
+    plat.textContent = p.platform || "";
+    lvl.textContent = p.level || "";
+    return row;
+  }
+
+  function render(problems) {
+    const today = ymd();
+
+    const week = ymd(monday(new Date()));
+    const thisWeek = problems.filter((p) => p.solved && p.solved >= week).length;
+    const solo = problems.length
+      ? Math.round(problems.filter((p) => p.result === "혼자 풂").length / problems.length * 100)
+      : 0;
+    summary.innerHTML = `이번 주 <b>${thisWeek}</b>문제 · 누적 <b>${problems.length}</b> · 혼자 풂 <b>${solo}%</b>`;
+
+    const due = problems
+      .filter((p) => p.solved)
+      .map((p) => ({ ...p, next: nextReview(p.solved, p.step) }))
+      .filter((p) => p.next && today >= p.next)
+      .sort((a, b) => a.next.localeCompare(b.next))
+      .slice(0, 3);
+
+    rvList.innerHTML = "";
+    if (due.length) {
+      listLabel.textContent = "오늘 복습";
+      due.forEach((p) => rvList.appendChild(dueRow(p, today)));
+    } else {
+      listLabel.textContent = "오늘 복습 없음 · 최근 푼 문제";
+      const recent = [...problems]
+        .filter((p) => p.solved)
+        .sort((a, b) => b.solved.localeCompare(a.solved))
+        .slice(0, 3);
+      if (!recent.length) {
+        rvList.innerHTML = '<div class="msg">코테 기록을 추가해 보세요</div>';
+      } else {
+        recent.forEach((p) => rvList.appendChild(recentRow(p)));
+      }
+    }
+
+    const weak_count = {};
+    problems.forEach((p) => {
+      if (p.result === "힌트 봄" || p.result === "답 봄") {
+        (p.types || []).forEach((t) => { weak_count[t] = (weak_count[t] || 0) + 1; });
+      }
+    });
+    const weakTypes = Object.entries(weak_count)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 2)
+      .map(([t]) => t);
+    weak.textContent = weakTypes.length ? `약한 유형: ${weakTypes.join(", ")}` : "";
+  }
+
+  async function load() {
+    try {
+      render((await widgetApi("coding")).problems);
+    } catch (e) {
+      rvList.innerHTML = '<div class="msg">노션 연결 실패</div>';
+    }
+  }
+
+  load();
+  onVisible(load);
+  setInterval(load, 2 * 60 * 1000); // refresh every 2m
+
+  fPlatform.innerHTML = PLATFORMS.map((s) => `<option${s === "프로그래머스" ? " selected" : ""}>${s}</option>`).join("");
+  fLevel.innerHTML = '<option value="">난이도</option>' + LEVELS.map((s) => `<option>${s}</option>`).join("");
+  fResult.innerHTML = RESULTS.map((s) => `<option${s === "혼자 풂" ? " selected" : ""}>${s}</option>`).join("");
+  fTypes.innerHTML = TYPES.map((t) => `<button type="button" class="chip-btn" data-t="${t}">${t}</button>`).join("");
+  fTypes.querySelectorAll(".chip-btn").forEach((b) =>
+    b.addEventListener("click", () => b.classList.toggle("sel"))
+  );
+
+  function selectedTypes() {
+    return [...fTypes.querySelectorAll(".chip-btn.sel")].map((b) => b.dataset.t);
+  }
+
+  addRow.addEventListener("click", () => {
+    panel.classList.toggle("open");
+    fErr.textContent = "";
+    if (panel.classList.contains("open")) fTitle.focus();
+  });
+  fCancel.addEventListener("click", () => panel.classList.remove("open"));
+
+  async function save() {
+    fErr.textContent = "";
+    const title = fTitle.value.trim();
+    if (!title) {
+      fErr.textContent = "문제명을 입력해 주세요";
+      return;
+    }
+    fSave.disabled = true;
+    try {
+      await widgetPost("coding", {
+        title,
+        platform: fPlatform.value,
+        level: fLevel.value,
+        types: selectedTypes(),
+        result: fResult.value,
+        link: fLink.value.trim(),
+        date: ymd(),
+      });
+      fTitle.value = "";
+      fLevel.value = "";
+      fLink.value = "";
+      fTypes.querySelectorAll(".chip-btn.sel").forEach((b) => b.classList.remove("sel"));
+      panel.classList.remove("open");
+      load();
+    } catch (e) {
+      fErr.textContent = "저장 실패, 다시 시도해 주세요";
+    } finally {
+      fSave.disabled = false;
+    }
+  }
+  fSave.addEventListener("click", save);
+  fTitle.addEventListener("keydown", (e) => { if (e.key === "Enter") save(); });
+</script>
+</body>
+</html>
